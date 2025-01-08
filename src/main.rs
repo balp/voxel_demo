@@ -1,8 +1,11 @@
+mod map;
+
 use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_voxel_world::prelude::*;
 use std::sync::Arc;
 use bevy::pbr::CascadeShadowConfigBuilder;
+use map::{Map, NodeType};
 
 // Using enum for material index allows for more than u8::MAX number of materials.
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
@@ -11,208 +14,6 @@ enum BlockTexture {
     SnowyBrick,
     FullBrick,
     Grass,
-}
-
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
-struct Size {
-    width: u32,
-    height: u32,
-}
-
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
-enum NodeType {
-    #[default]
-    Grass,
-    Snow,
-}
-
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
-struct Node {
-    _type: NodeType,
-    height: u8,
-}
-
-impl Node {
-    fn new(_type: NodeType, height: u8) -> Self {
-        Self { _type, height }
-    }
-}
-
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Default)]
-struct Map {
-    pub(crate) size: Size,
-    pub(crate) map: Vec<Vec<Node>>,
-    min_x: i32,
-    max_x: i32,
-    min_z: i32,
-    max_z: i32,
-}
-
-impl Map {
-    fn test_map() -> Self {
-        let width = 11;
-        let height = 10;
-        let min_x = 0 - (width / 2) as i32;
-        let max_x = min_x + width as i32;
-        let min_z = 0 - (height / 2) as i32;
-        let max_z = min_z + height as i32;
-
-        Map {
-            size: Size { width, height },
-            map: vec![
-                vec![
-                    Node::new(NodeType::Snow, 8),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 8),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 6),
-                    Node::new(NodeType::Snow, 7),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 6),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 6),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 1),
-                    Node::new(NodeType::Grass, 1),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 1),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 8),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 8),
-                    Node::new(NodeType::Grass, 2),
-                ],
-                vec![
-                    Node::new(NodeType::Grass, 8),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 8),
-                ],
-            ],
-            min_x,
-            max_x,
-            min_z,
-            max_z,
-        }
-    }
-
-    fn in_map(self: &Self, pos: IVec3) -> bool {
-        pos.x >= self.min_x && pos.x < self.max_x && pos.z >= self.min_z && pos.z < self.max_z
-    }
-
-    fn get(self: &Self, pos: IVec3) -> Option<Node> {
-        if self.in_map(pos) {
-            let x = (pos.x + self.min_x.abs()) as usize;
-            let z = (pos.z + self.min_z.abs()) as usize;
-            Some(self.map[x][z])
-        } else {
-            None
-        }
-    }
 }
 
 #[derive(Resource, Clone)]
@@ -383,7 +184,7 @@ fn main() {
         //     custom_layer: |_| None,
         // }))
         .add_plugins(VoxelWorldPlugin::with_config(MyMainWorld::new()))
-        .add_systems(Startup, (setup, create_voxel_scene).chain())
+        .add_systems(Startup, (setup, ).chain())
         .add_systems(Update, (move_camera, close_on_esc))
         .run();
 }
@@ -420,71 +221,6 @@ fn setup(mut commands: Commands) {
             .build(),
     ));
 
-    // // light
-    // commands.spawn((
-    //     PointLight {
-    //         shadows_enabled: true,
-    //         ..default()
-    //     },
-    //     Transform::from_xyz(4.0, 8.0, 4.0),
-    // ));
-}
-
-fn create_voxel_scene(mut voxel_world: VoxelWorld<MyMainWorld>) {
-    // // Then we can use the `u8` consts to specify the type of voxel
-    //
-    // // 20 by 20 floor
-    // let x_size = 40;
-    // let y_size = 30;
-    // let min_x = 0 - (x_size / 2);
-    // let max_x = (x_size / 2);
-    // let min_y = 0 - (y_size / 2);
-    // let max_y = (x_size / 2);
-    //
-    // for x in min_x..max_x {
-    //     for z in min_y..max_y {
-    //         voxel_world.set_voxel(IVec3::new(x, -1, z), WorldVoxel::Solid(BlockTexture::Grass));
-    //         // Grassy floor
-    //     }
-    // }
-    //
-    // // Some bricks
-    // voxel_world.set_voxel(
-    //     IVec3::new(0, 0, 0),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(1, 0, 0),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(0, 0, 1),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(0, 0, -1),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(-1, 0, 0),
-    //     WorldVoxel::Solid(BlockTexture::FullBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(-2, 0, 0),
-    //     WorldVoxel::Solid(BlockTexture::FullBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(-1, 1, 0),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(-2, 1, 0),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
-    // voxel_world.set_voxel(
-    //     IVec3::new(0, 1, 0),
-    //     WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    // );
 }
 
 fn move_camera(
@@ -515,65 +251,3 @@ pub fn close_on_esc(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn in_map_n5xn5() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(-5, -5, -5);
-        assert_eq!(sut.in_map(pos), true)
-    }
-    #[test]
-    fn outside_map_n6xn5() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(-6, -5, -5);
-        assert_eq!(sut.in_map(pos), false)
-    }
-    #[test]
-    fn outside_map_n5xn6() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(-5, -5, -6);
-        assert_eq!(sut.in_map(pos), false)
-    }
-    #[test]
-    fn in_map_n6xn5_zn6() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(-5, -6, -5);
-        assert_eq!(sut.in_map(pos), true)
-    }
-    #[test]
-    fn in_map_5x5() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(5, -5, 5);
-        assert_eq!(sut.in_map(pos), true)
-    }
-    #[test]
-    fn outside_map_6x5() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(6, -5, 5);
-        assert_eq!(sut.in_map(pos), false)
-    }
-    #[test]
-    fn outside_map_5x6() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(5, -5, 6);
-        assert_eq!(sut.in_map(pos), false)
-    }
-    #[test]
-    fn get_map_n5x0xn5() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(-5, 0, -5);
-        assert_eq!(sut.get(pos), Some(Node::new(NodeType::Snow, 8)))
-    }
-    #[test]
-    fn get_map_5x0x5() {
-        let sut = Map::test_map();
-        let pos = IVec3::new(5, 0, 5);
-        let opt_node = sut.get(pos);
-        assert_eq!(opt_node, Some(Node::new(NodeType::Snow, 8)))
-    }
-
-
-}
