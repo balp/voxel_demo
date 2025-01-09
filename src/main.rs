@@ -1,4 +1,5 @@
 mod map;
+mod textures;
 
 use crate::map::Size;
 use bevy::pbr::{CascadeShadowConfigBuilder, MaterialPipeline, MaterialPipelineKey};
@@ -16,18 +17,10 @@ use smooth_bevy_cameras::{
 };
 use std::f32::consts::PI;
 use std::sync::Arc;
-// Using enum for material index allows for more than u8::MAX number of materials.
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
-enum BlockTexture {
-    #[default]
-    SnowyBrick,
-    FullBrick,
-    GrassBrick,
-}
+use textures::BlockTexture;
 
 #[derive(Resource, Clone)]
 struct MyMainWorld {
-    //    map: Box<Map>,
     static_map: &'static Map,
 }
 
@@ -52,97 +45,8 @@ impl MyMainWorld {
 impl VoxelWorldConfig for MyMainWorld {
     type MaterialIndex = BlockTexture;
 
-    // 00 - brick_grey.png
-    // 01 - brick_red.png
-    // 02 - cactus_inside.png
-    // 03 - cactus_side.png
-    // 04 - cactus_top.png
-    // 05 - cotton_blue.png
-    // 06 - cotton_green.png
-    // 07 - cotton_red.png
-    // 08 - cotton_tan.png
-    // 09 - dirt.png
-    // 10 - dirt_grass.png
-    // 11 - dirt_sand.png
-    // 12 - dirt_snow.png
-    // 13 - fence_stone.png
-    // 14 - fence_wood.png
-    // 15 - glass.png
-    // 16 - glass_frame.png
-    // 17 - grass1.png
-    // 18 - grass2.png
-    // 19 - grass3.png
-    // 20 - grass4.png
-    // 21 - grass_brown.png
-    // 22 - grass_tan.png
-    // 23 - grass_top.png
-    // 24 - gravel_dirt.png
-    // 25 - gravel_stone.png
-    // 26 - greysand.png
-    // 27 - greystone.png
-    // 28 - greystone_ruby.png
-    // 29 - greystone_ruby_alt.png
-    // 30 - greystone_sand.png
-    // 31 - ice.png
-    // 32 - lava.png
-    // 33 - leaves.png
-    // 34 - leaves_orange.png
-    // 35 - leaves_orange_transparent.png
-    // 36 - leaves_transparent.png
-    // 37 - mushroom_brown.png
-    // 38 - mushroom_red.png
-    // 39 - mushroom_tan.png
-    // 40 - oven.png
-    // 41 - redsand.png
-    // 42 - redstone.png
-    // 43 - redstone_emerald.png
-    // 44 - redstone_emerald_alt.png
-    // 45 - redstone_sand.png
-    // 46 - rock.png
-    // 47 - rock_moss.png
-    // 48 - sand.png
-    // 49 - snow.png
-    // 50 - stone.png
-    // 51 - stone_browniron.png
-    // 52 - stone_browniron_alt.png
-    // 53 - stone_coal.png
-    // 54 - stone_coal_alt.png
-    // 55 - stone_diamond.png
-    // 56 - stone_diamond_alt.png
-    // 57 - stone_dirt.png
-    // 58 - stone_gold.png
-    // 59 - stone_gold_alt.png
-    // 60 - stone_grass.png
-    // 61 - stone_iron.png
-    // 62 - stone_iron_alt.png
-    // 63 - stone_sand.png
-    // 64 - stone_silver.png
-    // 65 - stone_silver_alt.png
-    // 66 - stone_snow.png
-    // 67 - table.png
-    // 68 - track_corner.png
-    // 69 - track_corner_alt.png
-    // 70 - track_straight.png
-    // 71 - track_straight_alt.png
-    // 72 - trunk_bottom.png
-    // 73 - trunk_mid.png
-    // 74 - trunk_side.png
-    // 75 - trunk_top.png
-    // 76 - trunk_white_side.png
-    // 77 - trunk_white_top.png
-    // 78 - water.png
-    // 79 - wheat_stage1.png
-    // 80 - wheat_stage2.png
-    // 81 - wheat_stage3.png
-    // 82 - wheat_stage4.png
-    // 83 - wood.png
-    // 84 - wood_red.png
     fn texture_index_mapper(&self) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
-        Arc::new(|vox_mat| match vox_mat {
-            BlockTexture::SnowyBrick => [49, 49, 49],
-            BlockTexture::FullBrick => [9, 9, 9],
-            BlockTexture::GrassBrick => [23, 23, 23],
-        })
+        Arc::new(|vox_mat| vox_mat.index_mapper())
     }
 
     fn voxel_lookup_delegate(&self) -> VoxelLookupDelegate<Self::MaterialIndex> {
@@ -151,44 +55,51 @@ impl VoxelWorldConfig for MyMainWorld {
     }
 
     fn voxel_texture(&self) -> Option<(String, u32)> {
-        Some(("voxel_textures_all.png".into(), 85))
+        Some(BlockTexture::get_texture())
     }
 }
 fn get_voxel_fn(
     world_map: &Map,
 ) -> Box<dyn FnMut(IVec3) -> WorldVoxel<BlockTexture> + Send + Sync + '_> {
     Box::new(move |pos: IVec3| {
-        let node = world_map.get(pos);
-        match node {
-            None => WorldVoxel::Unset,
-            Some(n) => {
-                if pos.y < (n.height as i32) {
-                    WorldVoxel::Solid(BlockTexture::FullBrick)
-                } else if pos.y == (n.height as i32) {
-                    match n._type {
-                        NodeType::Grass => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                        NodeType::Snow => WorldVoxel::Solid(BlockTexture::SnowyBrick),
-                        NodeType::Dirt => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                        NodeType::Sand => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                        NodeType::Gravel => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                        NodeType::Stone => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                        NodeType::Rock => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                        NodeType::Water => WorldVoxel::Solid(BlockTexture::GrassBrick),
-                    }
-                } else {
-                    WorldVoxel::Air
-                }
-            }
-        }
+        world_map.voxel_at(pos)
     })
 }
+
+#[derive(Resource, Clone, Default)]
+struct VoxelTrace {
+    start: Option<Vec3>,
+    end: Vec3,
+}
+#[derive(Component)]
+struct CursorCube {
+    voxel_pos: IVec3,
+    voxel_mat: u8,
+}
+
 
 const RED: u8 = 0;
 const GREEN: u8 = 1;
 const BLUE: u8 = 2;
-#[derive(Resource, Clone, Default)]
-struct WaterWorld;
+const FULL_BRICK: u8 = 3;
 
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Default)]
+struct WaterSim;
+
+#[derive(Resource, Clone)]
+struct WaterWorld {
+    water_sim: &'static WaterSim,
+}
+
+impl Default for WaterWorld {
+    fn default() -> Self {
+        let sim = Box::new(WaterSim::default());
+        let water_sim: &'static WaterSim = Box::leak(Box::new(sim.clone()));
+        Self { water_sim }
+    }
+}
+
+// Start sim at 30, 67,
 impl VoxelWorldConfig for WaterWorld {
     type MaterialIndex = u8;
 
@@ -196,14 +107,17 @@ impl VoxelWorldConfig for WaterWorld {
         Arc::new(|vox_mat: u8| match vox_mat {
             RED => [1, 1, 1],
             GREEN => [2, 2, 2],
-            BLUE | _ => [3, 3, 3],
+            BLUE => [3, 3, 3],
+            FULL_BRICK | _ => [4, 4, 4],
         })
     }
 }
 
 impl WaterWorld {
     fn new() -> Self {
-        Self {}
+        let sim = Box::new(WaterSim::default());
+        let water_sim: &'static WaterSim = Box::leak(Box::new(sim.clone()));
+        Self { water_sim }
     }
 }
 
@@ -256,12 +170,30 @@ fn main() {
         )
         .add_plugins((LookTransformPlugin, UnrealCameraPlugin::default()))
         .add_plugins(VoxelWorldPlugin::with_config(MyMainWorld::new()))
+        .init_resource::<VoxelTrace>()
         .add_systems(Startup, (setup,).chain())
-        .add_systems(Update, close_on_esc)
+        .add_systems(Update, (close_on_esc, update_cursor_cube))
         .run();
 }
 
-fn setup(mut commands: Commands, mut water_world: VoxelWorld<WaterWorld>) {
+fn setup(mut commands: Commands,
+         mut meshes: ResMut<Assets<Mesh>>,
+         mut materials: ResMut<Assets<StandardMaterial>>,
+         mut water_world: VoxelWorld<WaterWorld>) {
+    // Cursor cube
+    commands.spawn((
+        Transform::from_xyz(0.0, -10.0, 0.0),
+        Mesh3d(meshes.add(Mesh::from(Cuboid {
+            half_size: Vec3::splat(0.5),
+        }))),
+        MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 128))),
+        CursorCube {
+            voxel_pos: IVec3::new(0, -10, 0),
+            voxel_mat: FULL_BRICK,
+        },
+    ));
+
+
     // Camera
     commands
         .spawn((
@@ -320,6 +252,37 @@ pub fn close_on_esc(
 
         if input.just_pressed(KeyCode::Escape) {
             commands.entity(window).despawn();
+        }
+    }
+}
+
+fn update_cursor_cube(
+    voxel_world_raycast: VoxelWorld<MyMainWorld>,
+    mut trace: ResMut<VoxelTrace>,
+    camera_info: Query<(&Camera, &GlobalTransform), With<VoxelWorldCamera<MyMainWorld>>>,
+    mut cursor_evr: EventReader<CursorMoved>,
+    mut cursor_cube: Query<(&mut Transform, &mut CursorCube)>,
+) {
+    for ev in cursor_evr.read() {
+        // Get a ray from the cursor position into the world
+        let (camera, cam_gtf) = camera_info.single();
+        let Ok(ray) = camera.viewport_to_world(cam_gtf, ev.position) else {
+            return;
+        };
+
+        if let Some(result) = voxel_world_raycast.raycast(ray, &|(_pos, _vox)| true) {
+            let (mut transform, mut cursor_cube) = cursor_cube.single_mut();
+
+            // Camera could end up inside geometry - in that case just ignore the trace
+            if let Some(normal) = result.normal {
+                // Move the cursor cube to the position of the voxel we hit
+                let voxel_pos = result.position + normal;
+                transform.translation = voxel_pos + Vec3::splat(VOXEL_SIZE / 2.);
+                cursor_cube.voxel_pos = voxel_pos.as_ivec3();
+                println!("voxel_pos {:?}", cursor_cube.voxel_pos);
+                // Update current trace end to the cursor cube position
+                trace.end = transform.translation;
+            }
         }
     }
 }

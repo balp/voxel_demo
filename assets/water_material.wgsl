@@ -19,6 +19,9 @@ fn fragment(
     if (tex_idx[0] == 3u) {
         out.color = vec4<f32>(0.1, 0.1, 0.4, 0.2);
     }
+    if (tex_idx[0] == 4u) {
+        out.color = vec4<f32>(0.5, 0.5, 0.5, 0.2);
+    }
 
     // Multiply by the vertex color to get amient occlusion
     out.color = out.color * in.color;

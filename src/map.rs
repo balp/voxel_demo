@@ -1,5 +1,7 @@
 use bevy::math::IVec3;
+use bevy_voxel_world::prelude::WorldVoxel;
 use noise::{HybridMulti, NoiseFn, Perlin};
+use crate::textures::BlockTexture;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub(crate) struct Size {
@@ -28,13 +30,13 @@ pub(crate) enum NodeType {
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub(crate) struct MapNode {
-    pub(crate) _type: NodeType,
+    pub(crate) surface_type: NodeType,
     pub(crate) height: i8,
 }
 
 impl MapNode {
-    fn new(_type: NodeType, height: i8) -> Self {
-        Self { _type, height }
+    fn new(surface_type: NodeType, height: i8) -> Self {
+        Self { surface_type, height }
     }
 }
 
@@ -66,24 +68,34 @@ impl Map {
             for z in min_z..max_z {
                 let float_height = noise.get([x as f64 / 1000.0, z as f64 / 1000.0]) * 50.0;
                 let height = float_height.floor() as i8;
-                println!("new float height: {} {}", float_height, height);
+                // println!("new float height: {} {}", float_height, height);
+                let surface_type = match height {
+                    x if x < 0 => NodeType::Gravel,
+                    x if x == 0 => NodeType::Sand,
+                    x if x > 15 => NodeType::Stone,
+                    x if x > 30 => NodeType::Rock,
+                    x if x > 35 => NodeType::Snow,
+                    _ => NodeType::Grass,
+                };
                 row.push(MapNode {
-                    _type: NodeType::Grass,
+                    surface_type,
                     height,
                 })
             }
-            println!();
+            // println!();
             map.push(row);
         }
 
-        Self {
+        let mut m = Self {
             size,
             map,
             min_x,
             max_x,
             min_z,
             max_z,
-        }
+        };
+        m.set_surface(IVec3::new(30,0, 67), NodeType::Water);
+        m
     }
     pub(crate) fn test_map() -> Self {
         let width = 11;
@@ -248,6 +260,42 @@ impl Map {
         } else {
             None
         }
+    }
+
+    pub(crate) fn voxel_at(self: &Self, pos: IVec3) -> WorldVoxel<BlockTexture> {
+        let node = self.get(pos);
+        match node {
+            None => WorldVoxel::Unset,
+            Some(n) => {
+                if pos.y < (n.height as i32) {
+                    WorldVoxel::Solid(BlockTexture::FullBrick)
+                } else if pos.y == (n.height as i32) {
+                    match n.surface_type {
+                        NodeType::Grass => WorldVoxel::Solid(BlockTexture::GrassBrick),
+                        NodeType::Snow => WorldVoxel::Solid(BlockTexture::SnowyBrick),
+                        NodeType::Dirt => WorldVoxel::Solid(BlockTexture::DirtBrick),
+                        NodeType::Sand => WorldVoxel::Solid(BlockTexture::SandBrick),
+                        NodeType::Gravel => WorldVoxel::Solid(BlockTexture::GravelBrick),
+                        NodeType::Stone => WorldVoxel::Solid(BlockTexture::StoneBrick),
+                        NodeType::Rock => WorldVoxel::Solid(BlockTexture::RockBrick),
+                        NodeType::Water => WorldVoxel::Solid(BlockTexture::WaterBrick),
+                    }
+                } else {
+                    WorldVoxel::Air
+                }
+            }
+        }
+    }
+
+    fn set_surface(self: &mut Self, pos: IVec3, surface: NodeType) {
+        if self.in_map(pos) {
+            let x = (pos.x + self.min_x.abs()) as usize;
+            let z = (pos.z + self.min_z.abs()) as usize;
+            let node = &mut self.map[x][z];
+            node.surface_type = surface;
+        }
+
+
     }
 }
 
