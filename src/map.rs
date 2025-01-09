@@ -1,4 +1,5 @@
 use bevy::math::IVec3;
+use noise::{HybridMulti, NoiseFn, Perlin};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub(crate) struct Size {
@@ -6,21 +7,33 @@ pub(crate) struct Size {
     height: u32,
 }
 
+impl Size {
+    pub(crate) fn new(width: u32, height: u32) -> Self {
+        Size { width, height }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub(crate) enum NodeType {
     #[default]
     Grass,
     Snow,
+    Dirt,
+    Sand,
+    Gravel,
+    Stone,
+    Rock,
+    Water,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
-pub(crate) struct Node {
+pub(crate) struct MapNode {
     pub(crate) _type: NodeType,
-    pub(crate) height: u8,
+    pub(crate) height: i8,
 }
 
-impl Node {
-    fn new(_type: NodeType, height: u8) -> Self {
+impl MapNode {
+    fn new(_type: NodeType, height: i8) -> Self {
         Self { _type, height }
     }
 }
@@ -28,7 +41,7 @@ impl Node {
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Default)]
 pub struct Map {
     pub(crate) size: Size,
-    pub(crate) map: Vec<Vec<Node>>,
+    pub(crate) map: Vec<Vec<MapNode>>,
     min_x: i32,
     max_x: i32,
     min_z: i32,
@@ -36,6 +49,42 @@ pub struct Map {
 }
 
 impl Map {
+    pub(crate) fn noise_map(size: Size) -> Self {
+        let mut noise = HybridMulti::<Perlin>::new(1234);
+        noise.octaves = 5;
+        noise.frequency = 1.1;
+        noise.lacunarity = 2.8;
+        noise.persistence = 0.4;
+
+        let min_x = 0 - (size.width / 2) as i32;
+        let max_x = min_x + size.width as i32;
+        let min_z = 0 - (size.height / 2) as i32;
+        let max_z = min_z + size.height as i32;
+        let mut map = Vec::new();
+        for x in min_x..max_x {
+            let mut row = Vec::new();
+            for z in min_z..max_z {
+                let float_height = noise.get([x as f64 / 1000.0, z as f64 / 1000.0]) * 50.0;
+                let height = float_height.floor() as i8;
+                println!("new float height: {} {}", float_height, height);
+                row.push(MapNode {
+                    _type: NodeType::Grass,
+                    height,
+                })
+            }
+            println!();
+            map.push(row);
+        }
+
+        Self {
+            size,
+            map,
+            min_x,
+            max_x,
+            min_z,
+            max_z,
+        }
+    }
     pub(crate) fn test_map() -> Self {
         let width = 11;
         let height = 10;
@@ -48,136 +97,136 @@ impl Map {
             size: Size { width, height },
             map: vec![
                 vec![
-                    Node::new(NodeType::Snow, 8),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 8),
+                    MapNode::new(NodeType::Snow, 8),
+                    MapNode::new(NodeType::Snow, 5),
+                    MapNode::new(NodeType::Snow, 5),
+                    MapNode::new(NodeType::Snow, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Snow, 5),
+                    MapNode::new(NodeType::Snow, 5),
+                    MapNode::new(NodeType::Snow, 8),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Snow, 5),
-                    Node::new(NodeType::Snow, 6),
-                    Node::new(NodeType::Snow, 7),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Snow, 5),
+                    MapNode::new(NodeType::Snow, 6),
+                    MapNode::new(NodeType::Snow, 7),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 5),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 6),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 6),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 6),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 6),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 5),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 5),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 1),
-                    Node::new(NodeType::Grass, 1),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 1),
+                    MapNode::new(NodeType::Grass, 1),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 1),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 1),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 8),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 8),
-                    Node::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 8),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 8),
+                    MapNode::new(NodeType::Grass, 2),
                 ],
                 vec![
-                    Node::new(NodeType::Grass, 8),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 4),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 3),
-                    Node::new(NodeType::Grass, 2),
-                    Node::new(NodeType::Grass, 8),
+                    MapNode::new(NodeType::Grass, 8),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 4),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 3),
+                    MapNode::new(NodeType::Grass, 2),
+                    MapNode::new(NodeType::Grass, 8),
                 ],
             ],
             min_x,
@@ -191,7 +240,7 @@ impl Map {
         pos.x >= self.min_x && pos.x < self.max_x && pos.z >= self.min_z && pos.z < self.max_z
     }
 
-    pub(crate) fn get(self: &Self, pos: IVec3) -> Option<Node> {
+    pub(crate) fn get(self: &Self, pos: IVec3) -> Option<MapNode> {
         if self.in_map(pos) {
             let x = (pos.x + self.min_x.abs()) as usize;
             let z = (pos.z + self.min_z.abs()) as usize;
@@ -204,8 +253,8 @@ impl Map {
 
 #[cfg(test)]
 mod tests {
-    use bevy::prelude::IVec3;
     use super::*;
+    use bevy::prelude::IVec3;
 
     #[test]
     fn in_map_n5xn5() {
@@ -253,15 +302,25 @@ mod tests {
     fn get_map_n5x0xn5() {
         let sut = Map::test_map();
         let pos = IVec3::new(-5, 0, -5);
-        assert_eq!(sut.get(pos), Some(Node::new(NodeType::Snow, 8)))
+        assert_eq!(sut.get(pos), Some(MapNode::new(NodeType::Snow, 8)))
     }
     #[test]
     fn get_map_5x0x5() {
         let sut = Map::test_map();
         let pos = IVec3::new(5, 0, 4);
         let opt_node = sut.get(pos);
-        assert_eq!(opt_node, Some(Node::new(NodeType::Grass, 8)))
+        assert_eq!(opt_node, Some(MapNode::new(NodeType::Grass, 8)))
     }
 
-
+    #[test]
+    fn get_noise_map_20x20() {
+        let size = Size {
+            width: 20,
+            height: 20,
+        };
+        let sut = Map::noise_map(size);
+        assert_eq!(sut.size, size);
+        let position = sut.get(IVec3::new(0, 0, 0));
+        assert_ne!(position, None);
+    }
 }
